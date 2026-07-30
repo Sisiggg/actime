@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ACTime · Dashboard</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <header class="header">
+    <h1>ACTime <span>· Monitoring Dashboard</span></h1>
+    <div class="header-right">
+      <nav>
+        <a href="/" class="active">Dashboard</a>
+        <a href="/reports.html">Reports</a>
+      </nav>
+      <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="Toggle dark mode">🌙</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="summary" id="summary">
+      <div class="summary-card"><div class="label">Total Rooms</div><div class="value blue" id="totalRooms">—</div></div>
+      <div class="summary-card"><div class="label">Currently ON</div><div class="value green" id="totalOn">—</div></div>
+      <div class="summary-card"><div class="label">Hours Today</div><div class="value orange" id="totalHours">—</div></div>
+      <div class="summary-card"><div class="label">Avg Temperature</div><div class="value blue" id="avgTemp">—</div></div>
+    </div>
+
+    <div class="section-title">
+      <span>Monitored Rooms</span>
+      <span id="lastUpdate" style="font-size:12px;font-weight:400;color:#888;margin-left:auto;"></span>
+    </div>
+    <div id="roomGrid" class="room-grid"></div>
+  </div>
+
+  <script src="/js/theme.js"></script>
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script src="/js/dashboard.js"></script>
+</body>
+</html>

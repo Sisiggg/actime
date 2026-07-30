@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ACTime · Room Detail</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <header class="header">
+    <h1>ACTime <span>· Room Detail</span></h1>
+    <div class="header-right">
+      <nav>
+        <a href="/">Dashboard</a>
+        <a href="/reports.html">Reports</a>
+      </nav>
+      <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="Toggle dark mode">🌙</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <a href="/" class="back-link">&larr; Back to Dashboard</a>
+    <div id="detailContent">
+      <div class="loading"><div class="spinner"></div>Loading room data...</div>
+    </div>
+  </div>
+
+  <script src="/js/theme.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script src="/js/room.js"></script>
+</body>
+</html>

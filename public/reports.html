@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ACTime · Reports</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <header class="header">
+    <h1>ACTime <span>· Reports</span></h1>
+    <div class="header-right">
+      <nav>
+        <a href="/">Dashboard</a>
+        <a href="/reports.html" class="active">Reports</a>
+      </nav>
+      <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="Toggle dark mode">🌙</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="report-form">
+      <div class="form-group">
+        <label>From</label>
+        <input type="date" id="reportFrom">
+      </div>
+      <div class="form-group">
+        <label>To</label>
+        <input type="date" id="reportTo">
+      </div>
+      <div class="form-group">
+        <label>Room</label>
+        <select id="reportUnit"><option value="">All Rooms</option></select>
+      </div>
+      <button class="btn btn-primary" onclick="generateReport()">Generate Report</button>
+      <button class="btn btn-secondary" onclick="exportCSV()">Export CSV</button>
+    </div>
+    <div id="reportResults" class="report-results" style="display:none;"></div>
+  </div>
+
+  <script src="/js/theme.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="/js/reports.js"></script>
+</body>
+</html>

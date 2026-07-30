@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: actime
+    env: node
+    buildCommand: npm install
+    startCommand: node server/index.js
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: ENABLE_SIMULATOR
+        value: true
+      - key: PORT
+        value: 3000
