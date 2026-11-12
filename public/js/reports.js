@@ -1,12 +1,16 @@
 let currentReport = null;
 
+function toLocalDateStr(d) {
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
 function init() {
   const today = new Date();
   const monthAgo = new Date(today);
   monthAgo.setDate(monthAgo.getDate() - 30);
 
-  document.getElementById('reportTo').value = today.toISOString().slice(0, 10);
-  document.getElementById('reportFrom').value = monthAgo.toISOString().slice(0, 10);
+  document.getElementById('reportTo').value = toLocalDateStr(today);
+  document.getElementById('reportFrom').value = toLocalDateStr(monthAgo);
 
   fetch('/api/v1/units')
     .then(r => r.json())
@@ -27,23 +31,31 @@ function generateReport() {
   const to = document.getElementById('reportTo').value;
   const unitId = document.getElementById('reportUnit').value;
 
-  if (!from || !to) { alert('Please select a date range.'); return; }
+  const results = document.getElementById('reportResults');
+
+  if (!from || !to) {
+    results.style.display = 'block';
+    results.innerHTML = '<div class="error-state">Select both a start and end date.</div>';
+    return;
+  }
 
   let url = `/api/v1/report?from=${from}&to=${to}`;
   if (unitId) url += `&unit_ids=${unitId}`;
 
-  const results = document.getElementById('reportResults');
   results.style.display = 'block';
   results.innerHTML = '<div class="loading"><div class="spinner"></div>Generating report...</div>';
 
   fetch(url)
-    .then(r => r.json())
+    .then(r => {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    })
     .then(data => {
       currentReport = data;
       renderReport(data);
     })
     .catch(() => {
-      results.innerHTML = '<div class="error-state">Failed to generate report.</div>';
+      results.innerHTML = '<div class="error-state">Failed to generate report. Make sure the server is running, then try again.</div>';
     });
 }
 
@@ -57,8 +69,8 @@ function renderReport(data) {
       <div class="r-item"><div class="r-value">${data.summary.total_hours.toFixed(1)}</div><div class="r-label">Total Hours</div></div>
       <div class="r-item"><div class="r-value">${data.summary.avg_hours_per_unit.toFixed(1)}</div><div class="r-label">Avg Hours/Room</div></div>
     </div>
-    ${units.some(u => u.warnings) ? `<div class="warning-banner" style="margin-bottom:12px;">Low temperature warnings detected — see table below</div>` : ''}
-    <p style="font-size:12px;color:#888;margin-bottom:12px;">Period: ${data.period.from} to ${data.period.to}</p>
+    ${units.some(u => u.warnings) ? `<div class="warning-banner">Low temperature warnings detected — see table below</div>` : ''}
+    <p class="report-period">Period: ${data.period.from} to ${data.period.to}</p>
     <div class="table-wrap">
       <table>
         <thead><tr><th>Room</th><th>Building</th><th>Total Hours</th><th>ON Cycles</th><th>Avg Temp</th><th>Warnings</th></tr></thead>
@@ -66,7 +78,7 @@ function renderReport(data) {
           ${units.map(u => {
             const warnHtml = u.warnings
               ? `<span class="report-warn">${u.warnings.count}× (lowest ${u.warnings.lowest_temp}°C)</span>`
-              : '<span style="color:#999;">None</span>';
+              : '<span class="text-faint">None</span>';
             return `<tr class="${u.warnings ? 'row-warn' : ''}">
               <td><strong>${u.room_name}</strong></td>
               <td>${u.building}</td>
@@ -79,26 +91,27 @@ function renderReport(data) {
         </tbody>
       </table>
     </div>
-      <div style="margin-top:20px;">
-        <div class="table-wrap" style="margin-bottom:16px;">
-          <div style="font-size:14px;font-weight:600;margin-bottom:12px;">Daily Breakdown (hours)</div>
-          <div style="max-height:320px;overflow-y:auto;">
-            <table>
-              <thead><tr><th>Date</th>${units.map(u => `<th>${u.room_name}</th>`).join('')}<th>Total</th></tr></thead>
-              <tbody id="breakdownBody"></tbody>
-            </table>
-          </div>
-        </div>
-        <div class="chart-container">
-          <div class="chart-title">Daily Hours Chart</div>
-          <canvas id="reportChart"></canvas>
+    <div class="report-block">
+      <div class="table-wrap">
+        <div class="table-title">Daily Breakdown (hours)</div>
+        <div class="table-scroll-y">
+          <table>
+            <thead><tr><th>Date</th>${units.map(u => `<th>${u.room_name}</th>`).join('')}<th>Total</th></tr></thead>
+            <tbody id="breakdownBody"></tbody>
+          </table>
         </div>
       </div>
-    <div style="margin-top:16px;text-align:right;font-size:11px;color:#888;">
+      <div class="chart-container">
+        <div class="chart-title">Daily Hours Chart</div>
+        <canvas id="reportChart"></canvas>
+      </div>
+    </div>
+    <div class="report-generated">
       Generated: ${new Date(data.generated_at).toLocaleString()}
     </div>
   `;
 
+  document.getElementById('exportBtn').disabled = false;
   renderBreakdownTable(units);
   renderReportChart(units);
 }
@@ -110,7 +123,7 @@ function renderBreakdownTable(units) {
   if (!tbody) return;
   const allDays = [...new Set(units.flatMap(u => (u.daily_breakdown||[]).map(d => d.date)))].sort().reverse();
   if (!allDays.length) {
-    tbody.innerHTML = '<tr><td colspan="' + (units.length + 2) + '" style="text-align:center;color:#888;">No daily data available.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="' + (units.length + 2) + '" style="text-align:center;color:var(--text-muted);">No daily data available.</td></tr>';
     return;
   }
   tbody.innerHTML = allDays.map(day => {
@@ -120,7 +133,7 @@ function renderBreakdownTable(units) {
     });
     const total = vals.reduce((a,b) => a+b, 0);
     const cells = [day.slice(5), ...vals.map(v => v.toFixed(1)), total.toFixed(1)];
-    return '<tr>' + cells.map((c,i) => '<td' + (i===0?' style="font-weight:600;"':'') + '>' + c + (i>0?'h':'') + '</td>').join('') + '</tr>';
+    return '<tr>' + cells.map((c, i) => '<td' + (i === 0 ? ' class="date-cell"' : '') + '>' + c + (i > 0 ? 'h' : '') + '</td>').join('') + '</tr>';
   }).join('');
 }
 
@@ -129,18 +142,26 @@ function renderReportChart(units) {
   units.forEach(u => (u.daily_breakdown || []).forEach(d => days.add(d.date)));
   const sortedDays = [...days].sort();
 
-  const palette = [
-    { fill: 'rgba(26,115,232,0.75)', border: '#1a73e8', hover: 'rgba(26,115,232,0.9)' },
-    { fill: 'rgba(52,168,83,0.75)',  border: '#34a853', hover: 'rgba(52,168,83,0.9)' },
-    { fill: 'rgba(249,168,37,0.75)', border: '#f9a825', hover: 'rgba(249,168,37,0.9)' },
-    { fill: 'rgba(234,67,53,0.75)',  border: '#ea4335', hover: 'rgba(234,67,53,0.9)' },
+  const isDark = document.body.classList.contains('dark-mode');
+  const palette = isDark ? [
+    { fill: 'rgba(96,165,250,0.8)',  border: '#60a5fa', hover: 'rgba(96,165,250,0.95)' },
+    { fill: 'rgba(74,222,128,0.8)',  border: '#4ade80', hover: 'rgba(74,222,128,0.95)' },
+    { fill: 'rgba(251,191,36,0.8)',  border: '#fbbf24', hover: 'rgba(251,191,36,0.95)' },
+    { fill: 'rgba(248,113,113,0.8)', border: '#f87171', hover: 'rgba(248,113,113,0.95)' },
+  ] : [
+    { fill: 'rgba(37,99,235,0.78)',  border: '#2563eb', hover: 'rgba(37,99,235,0.92)' },
+    { fill: 'rgba(22,163,74,0.78)',  border: '#16a34a', hover: 'rgba(22,163,74,0.92)' },
+    { fill: 'rgba(217,119,6,0.78)',  border: '#d97706', hover: 'rgba(217,119,6,0.92)' },
+    { fill: 'rgba(220,38,38,0.78)',  border: '#dc2626', hover: 'rgba(220,38,38,0.92)' },
   ];
 
-  const isDark = document.body.classList.contains('dark-mode');
-  const textColor = isDark ? '#ccc' : '#444';
-  const gridColor = isDark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.06)';
-  const tooltipBg = isDark ? '#2a2a3e' : '#fff';
-  const tooltipBorder = isDark ? '#444' : '#ddd';
+  const styles = getComputedStyle(document.body);
+  const cssVar = name => styles.getPropertyValue(name).trim();
+  const textColor = cssVar('--text-secondary');
+  const gridColor = cssVar('--border-light');
+  const tooltipBg = cssVar('--surface');
+  const tooltipBorder = cssVar('--border');
+  const avgColor = cssVar('--warning');
 
   const datasets = units.map((u, i) => {
     const map = {};
@@ -231,14 +252,14 @@ function renderReportChart(units) {
         const ctx2 = ch.ctx;
         ctx2.save();
         ctx2.setLineDash([6, 4]);
-        ctx2.strokeStyle = isDark ? '#f9a825' : '#ea4335';
+        ctx2.strokeStyle = avgColor;
         ctx2.lineWidth = 1.5;
         ctx2.beginPath();
         ctx2.moveTo(ch.chartArea.left, y);
         ctx2.lineTo(ch.chartArea.right, y);
         ctx2.stroke();
         ctx2.setLineDash([]);
-        ctx2.fillStyle = isDark ? '#f9a825' : '#ea4335';
+        ctx2.fillStyle = avgColor;
         ctx2.font = '11px sans-serif';
         ctx2.textAlign = 'right';
         ctx2.fillText('Avg ' + avg.toFixed(1) + 'h', ch.chartArea.right - 6, y - 6);
@@ -247,6 +268,12 @@ function renderReportChart(units) {
     }]
   });
 }
+
+new MutationObserver(function () {
+  if (currentReport && currentReport.units && reportChart) {
+    renderReportChart(currentReport.units);
+  }
+}).observe(document.body, { attributes: true, attributeFilter: ['class'] });
 
 function exportCSV() {
   if (!currentReport) { generateReport(); return; }

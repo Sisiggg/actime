@@ -14,28 +14,30 @@
         <a href="/">Dashboard</a>
         <a href="/reports.html" class="active">Reports</a>
       </nav>
-      <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="Toggle dark mode">🌙</button>
+      <button type="button" class="theme-btn" id="themeBtn" onclick="toggleTheme()" aria-label="Toggle dark mode"></button>
     </div>
   </header>
 
   <div class="container">
     <div class="report-form">
       <div class="form-group">
-        <label>From</label>
+        <label for="reportFrom">From</label>
         <input type="date" id="reportFrom">
       </div>
       <div class="form-group">
-        <label>To</label>
+        <label for="reportTo">To</label>
         <input type="date" id="reportTo">
       </div>
       <div class="form-group">
-        <label>Room</label>
+        <label for="reportUnit">Room</label>
         <select id="reportUnit"><option value="">All Rooms</option></select>
       </div>
-      <button class="btn btn-primary" onclick="generateReport()">Generate Report</button>
-      <button class="btn btn-secondary" onclick="exportCSV()">Export CSV</button>
+      <div class="form-actions">
+        <button type="button" class="btn btn-primary" onclick="generateReport()">Generate Report</button>
+        <button type="button" class="btn btn-secondary" id="exportBtn" onclick="exportCSV()" disabled>Export CSV</button>
+      </div>
     </div>
-    <div id="reportResults" class="report-results" style="display:none;"></div>
+    <div id="reportResults" class="report-results" style="display:none;" aria-live="polite"></div>
   </div>
 
   <script src="/js/theme.js"></script>

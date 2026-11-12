@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server/index.js",
     "simulator": "node server/simulator.js",
-    "dev": "SET ENABLE_SIMULATOR=true & node server/index.js"
+    "dev": "SET ENABLE_SIMULATOR=true&&node server/index.js"
   },
   "engines": {
     "node": "18.x || 20.x"

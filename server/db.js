@@ -3,7 +3,9 @@ const fs = require('fs');
 const path = require('path');
 
 const PORT = process.env.PORT || 8080;
-const DB_PATH = path.join(__dirname, '..', 'data', `actime_${PORT}.db`);
+// Simulator writes fake readings, so keep them out of the real database.
+const DB_SUFFIX = process.env.ENABLE_SIMULATOR === 'true' ? '_sim' : '';
+const DB_PATH = path.join(__dirname, '..', 'data', `actime_${PORT}${DB_SUFFIX}.db`);
 let db = null;
 
 function wrap(dbRaw) {
@@ -86,7 +88,7 @@ async function init() {
       threshold   REAL DEFAULT 0.5,
       target_temp REAL DEFAULT 24,
       is_active   INTEGER DEFAULT 1,
-      created_at  TEXT DEFAULT (datetime('now'))
+      created_at  TEXT DEFAULT (datetime('now', 'localtime'))
     );
     CREATE TABLE IF NOT EXISTS readings (
       id           INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -95,7 +97,7 @@ async function init() {
       humidity     REAL,
       current_a    REAL,
       ac_status    TEXT CHECK(ac_status IN ('ON','OFF')),
-      recorded_at  TEXT DEFAULT (datetime('now')),
+      recorded_at  TEXT DEFAULT (datetime('now', 'localtime')),
       FOREIGN KEY (unit_id) REFERENCES units(id)
     );
     CREATE TABLE IF NOT EXISTS ac_events (
@@ -103,7 +105,7 @@ async function init() {
       unit_id     INTEGER NOT NULL,
       event_type  TEXT CHECK(event_type IN ('ON','OFF')),
       temperature REAL,
-      event_time  TEXT DEFAULT (datetime('now')),
+      event_time  TEXT DEFAULT (datetime('now', 'localtime')),
       FOREIGN KEY (unit_id) REFERENCES units(id)
     );
     CREATE INDEX IF NOT EXISTS idx_readings_unit_time ON readings(unit_id, recorded_at);

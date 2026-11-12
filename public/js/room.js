@@ -7,6 +7,19 @@ if (!unitId) { document.getElementById('detailContent').innerHTML = '<div class=
 let tempChart = null;
 let hoursChart = null;
 
+function chartTheme() {
+  const styles = getComputedStyle(document.body);
+  const v = name => styles.getPropertyValue(name).trim();
+  return {
+    text: v('--text-secondary'),
+    grid: v('--border-light'),
+    primary: v('--primary'),
+    danger: v('--danger'),
+    surface: v('--surface'),
+    border: v('--border')
+  };
+}
+
 function fetchDetail() {
   if (!unitId) return;
   fetch(`/api/v1/units/${unitId}`)
@@ -18,7 +31,7 @@ function fetchDetail() {
 function renderHeader(data) {
   const u = data.unit;
   const lr = data.last_reading;
-  const statusClass = lr?.ac_status === 'ON' ? 'on' : 'off';
+  const statusClass = lr?.ac_status === 'ON' ? 'on' : (lr?.ac_status === 'OFF' ? 'off' : 'unknown');
   const statusText = lr?.ac_status || 'No data';
 
   document.getElementById('detailContent').innerHTML = `
@@ -26,17 +39,17 @@ function renderHeader(data) {
     <div class="detail-header">
       <div class="info">
         <h2>${u.room_name}</h2>
-        <p>${u.building} · ${u.description || ''}</p>
-        <p style="font-size:13px;color:#1a73e8;margin-top:4px;">Target: ${u.target_temp ?? 24}°C</p>
+        <p>${u.building}${u.description ? ' · ' + u.description : ''}</p>
+        <p class="detail-target">Target: ${u.target_temp ?? 24}°C</p>
       </div>
-      <div>
-        <div style="font-size:12px;color:#888;text-align:right;">Status</div>
+      <div class="status-panel">
+        <div class="meta-label">Status</div>
         <div class="big-status ${statusClass}">${statusText}</div>
-        <div style="font-size:12px;color:#888;text-align:right;">${lr?.temperature ?? '—'}°C · ${lr?.humidity ?? '—'}% · ${lr?.current_a ?? '—'}A</div>
+        <div class="detail-status-sub">${lr?.temperature ?? '—'}°C · ${lr?.humidity ?? '—'}% · ${lr?.current_a ?? '—'}A</div>
       </div>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
+    <div class="chart-grid">
       <div class="chart-container">
         <div class="chart-title">Temperature (Last 24h)</div>
         <canvas id="tempChart"></canvas>
@@ -49,10 +62,9 @@ function renderHeader(data) {
 
     <div class="chart-container">
       <div class="chart-title">Air-Conditioning Unit Monitoring Checklist</div>
-      <div id="checklistWrap" style="overflow-x:auto;">
-        <div class="loading" style="padding:20px;"><div class="spinner" style="width:24px;height:24px;"></div></div>
-      </div>
+      <div id="checklistWrap" class="table-scroll-x"></div>
     </div>
+
   `;
 
   fetchReadings();
@@ -64,13 +76,17 @@ function fetchChecklist() {
   const to = new Date();
   const from = new Date(to);
   from.setDate(from.getDate() - 6);
-  const f = from.toISOString().slice(0, 10);
-  const t = to.toISOString().slice(0, 10);
+  const f = toLocalDate(from);
+  const t = toLocalDate(to);
 
   fetch(`/api/v1/checklist?from=${f}&to=${t}`)
     .then(r => r.json())
     .then(data => renderChecklist(data))
     .catch(() => {});
+}
+
+function toLocalDate(d) {
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
 
 function renderChecklist(data) {
@@ -81,47 +97,44 @@ function renderChecklist(data) {
     return;
   }
 
-  const isDark = document.body.classList.contains('dark-mode');
-  const borderColor = isDark ? '#333' : '#000';
-  const headBg = isDark ? '#1a1a2e' : '#fff';
-  const textColor = isDark ? '#e0e0e0' : '#1a1a2e';
-  const dashColor = isDark ? '#666' : '#999';
-
-  let html = `<table style="border-collapse:collapse;font-size:13px;min-width:700px;border:1px solid ${borderColor};">
+  let html = `<table class="checklist-table">
     <thead>
-      <tr style="background:${headBg};">
-        <th rowspan="2" style="border:1px solid ${borderColor};padding:10px 8px;text-align:center;font-weight:700;font-size:13px;color:${textColor};width:40px;">No.</th>
-        <th rowspan="2" style="border:1px solid ${borderColor};padding:10px 12px;text-align:center;font-weight:700;font-size:13px;color:${textColor};width:100px;">Offices</th>`;
+      <tr>
+        <th rowspan="2" class="col-index">No.</th>
+        <th rowspan="2" class="col-room">Rooms</th>`;
 
   data.dates.forEach(date => {
     const d = new Date(date + 'T00:00:00');
     const label = d.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
-    html += `<th colspan="2" style="border:1px solid ${borderColor};padding:8px 4px;text-align:center;font-weight:700;font-size:12px;color:${textColor};">${label}</th>`;
+    html += `<th colspan="2" class="date-head">${label}</th>`;
   });
 
-  html += `</tr><tr style="background:${headBg};">`;
+  html += `</tr><tr>`;
   data.dates.forEach(() => {
-    html += `<th style="border:1px solid ${borderColor};padding:6px 4px;text-align:center;font-weight:600;font-size:11px;color:${textColor};width:60px;">ON</th>
-             <th style="border:1px solid ${borderColor};padding:6px 4px;text-align:center;font-weight:600;font-size:11px;color:${textColor};width:60px;">OFF</th>`;
+    html += `<th class="cell-head">ON</th>
+             <th class="cell-head">OFF</th>`;
   });
   html += `</tr></thead><tbody>`;
 
   data.units.forEach((u, idx) => {
-    const rowBg = isDark ? (idx % 2 === 0 ? '#1a1a2e' : '#151525') : (idx % 2 === 0 ? '#fff' : '#fafafa');
-    html += `<tr style="background:${rowBg};">
-      <td style="border:1px solid ${borderColor};padding:8px 6px;text-align:center;font-weight:600;color:${textColor};">${idx + 1}</td>
-      <td style="border:1px solid ${borderColor};padding:8px 12px;text-align:left;font-weight:600;color:${textColor};">${u.room_name}</td>`;
+    html += `<tr>
+      <td class="col-index">${idx + 1}</td>
+      <td class="col-room">${u.room_name}</td>`;
 
     data.dates.forEach(date => {
       const dayEvents = u.days[date];
       if (dayEvents && dayEvents.length > 0) {
-        const onTimes = dayEvents.map(e => e.on).join('<br>');
-        const offTimes = dayEvents.map(e => e.off === 'Running' ? '<span style="color:#34a853;font-style:italic;">Running</span>' : e.off).join('<br>');
-        html += `<td style="border:1px solid ${borderColor};padding:6px 4px;text-align:center;font-size:12px;color:${textColor};line-height:1.6;">${onTimes}</td>
-                 <td style="border:1px solid ${borderColor};padding:6px 4px;text-align:center;font-size:12px;color:${textColor};line-height:1.6;">${offTimes}</td>`;
+        const onLines = dayEvents.map(e => e.on).join('<br>');
+        const offLines = dayEvents.map(e =>
+          e.off === 'Running'
+            ? '<span class="check-running">Running</span>'
+            : e.off
+        ).join('<br>');
+        html += `<td class="check-cell">${onLines}</td>
+                 <td class="check-cell">${offLines}</td>`;
       } else {
-        html += `<td style="border:1px solid ${borderColor};padding:6px 4px;text-align:center;font-size:12px;color:${dashColor};">—</td>
-                 <td style="border:1px solid ${borderColor};padding:6px 4px;text-align:center;font-size:12px;color:${dashColor};">—</td>`;
+        html += `<td class="check-cell check-empty">—</td>
+                 <td class="check-cell check-empty">—</td>`;
       }
     });
 
@@ -129,41 +142,61 @@ function renderChecklist(data) {
   });
 
   html += `</tbody></table>`;
-  html += `<p style="font-size:11px;color:${dashColor};margin-top:8px;text-align:right;">Period: ${data.period.from} to ${data.period.to}</p>`;
+  html += `<p class="checklist-period">Period: ${data.period.from} to ${data.period.to}</p>`;
 
   wrap.innerHTML = html;
 }
 
 function fetchReadings() {
-  const from = new Date(Date.now() - 24 * 3600000).toISOString();
-  fetch(`/api/v1/units/${unitId}/readings?from=${from}`)
+  const from = toLocalDate(new Date(Date.now() - 24 * 3600000)) + ' 00:00:00';
+  fetch(`/api/v1/units/${unitId}/readings?from=${encodeURIComponent(from)}`)
     .then(r => r.json())
     .then(data => {
       const readings = data.readings || [];
       if (tempChart) tempChart.destroy();
       const ctx = document.getElementById('tempChart');
       if (!ctx) return;
+      const t = chartTheme();
       const warnLine = { warn: 23 };
       tempChart = new Chart(ctx, {
         type: 'line',
         data: {
-          labels: readings.map(r => new Date(r.recorded_at.replace(' ', 'T') + 'Z').toLocaleTimeString()),
+          labels: readings.map(r => new Date(r.recorded_at.replace(' ', 'T')).toLocaleTimeString()),
           datasets: [{
             label: 'Temperature (°C)',
             data: readings.map(r => r.temperature),
-            borderColor: '#ea4335',
-            backgroundColor: 'rgba(234,67,53,.08)',
+            borderColor: t.primary,
+            backgroundColor: t.primary + '1f',
             fill: true,
             tension: .3,
             pointRadius: 2,
+            pointBackgroundColor: t.primary,
           }]
         },
         options: {
           responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: t.surface,
+              titleColor: t.text,
+              bodyColor: t.text,
+              borderColor: t.border,
+              borderWidth: 1,
+              padding: 10,
+              cornerRadius: 8
+            }
+          },
           scales: {
+            x: {
+              grid: { display: false },
+              ticks: { color: t.text, maxTicksLimit: 8 }
+            },
             y: {
-              title: { display: true, text: '°C' },
+              title: { display: true, text: '°C', color: t.text },
+              ticks: { color: t.text },
+              grid: { color: t.grid }
             }
           }
         },
@@ -175,15 +208,16 @@ function fetchReadings() {
             const ctx2 = ch.ctx;
             ctx2.save();
             ctx2.setLineDash([5, 5]);
-            ctx2.strokeStyle = '#ea4335';
+            ctx2.strokeStyle = t.danger;
             ctx2.lineWidth = 1.5;
             ctx2.beginPath();
             ctx2.moveTo(ch.chartArea.left, y);
             ctx2.lineTo(ch.chartArea.right, y);
             ctx2.stroke();
-            ctx2.fillStyle = '#ea4335';
+            ctx2.fillStyle = t.danger;
             ctx2.font = '11px sans-serif';
-            ctx2.fillText('Warning ≤ 23°C', ch.chartArea.right - 100, y - 4);
+            ctx2.textAlign = 'right';
+            ctx2.fillText('Warning ≤ 23°C', ch.chartArea.right - 6, y - 6);
             ctx2.restore();
           }
         }]
@@ -193,7 +227,7 @@ function fetchReadings() {
 }
 
 function fetchHours() {
-  const from = new Date(Date.now() - 30 * 86400000).toISOString().slice(0,10);
+  const from = toLocalDate(new Date(Date.now() - 30 * 86400000));
   fetch(`/api/v1/units/${unitId}/hours?from=${from}`)
     .then(r => r.json())
     .then(data => {
@@ -201,6 +235,7 @@ function fetchHours() {
       if (hoursChart) hoursChart.destroy();
       const ctx = document.getElementById('hoursChart');
       if (!ctx) return;
+      const t = chartTheme();
       hoursChart = new Chart(ctx, {
         type: 'bar',
         data: {
@@ -208,14 +243,34 @@ function fetchHours() {
           datasets: [{
             label: 'Hours',
             data: records.map(r => r.hours),
-            backgroundColor: '#1a73e8',
-            borderRadius: 4,
+            backgroundColor: t.primary,
+            borderRadius: 5,
           }]
         },
         options: {
           responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: { y: { title: { display: true, text: 'Hours' }, beginAtZero: true } }
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: t.surface,
+              titleColor: t.text,
+              bodyColor: t.text,
+              borderColor: t.border,
+              borderWidth: 1,
+              padding: 10,
+              cornerRadius: 8,
+              callbacks: { label: c => c.parsed.y.toFixed(1) + ' hours' }
+            }
+          },
+          scales: {
+            x: { grid: { display: false }, ticks: { color: t.text } },
+            y: {
+              beginAtZero: true,
+              title: { display: true, text: 'Hours', color: t.text },
+              ticks: { color: t.text },
+              grid: { color: t.grid }
+            }
+          }
         }
       });
     })
@@ -227,6 +282,11 @@ socket.on('reading', (data) => {
     fetchDetail();
   }
 });
+
+new MutationObserver(function () {
+  if (document.getElementById('tempChart')) fetchReadings();
+  if (document.getElementById('hoursChart')) fetchHours();
+}).observe(document.body, { attributes: true, attributeFilter: ['class'] });
 
 fetchDetail();
 setInterval(fetchDetail, 15000);

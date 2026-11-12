@@ -2,6 +2,20 @@ const { Router } = require('express');
 
 const WARN_TEMP = 23;
 
+function localDateStr(d) {
+  const v = d || new Date();
+  return v.getFullYear() + '-' + String(v.getMonth() + 1).padStart(2, '0') + '-' + String(v.getDate()).padStart(2, '0');
+}
+
+function localDateTimeStr(d) {
+  const v = d || new Date();
+  return localDateStr(v) + ' ' + String(v.getHours()).padStart(2, '0') + ':' + String(v.getMinutes()).padStart(2, '0') + ':' + String(v.getSeconds()).padStart(2, '0');
+}
+
+function localDateDaysAgo(n) {
+  return localDateStr(new Date(Date.now() - n * 86400000));
+}
+
 module.exports = function (io) {
   const router = Router();
 
@@ -35,7 +49,7 @@ module.exports = function (io) {
 
   router.get('/units', (req, res) => {
     const units = db().prepare('SELECT * FROM units WHERE is_active = 1').all();
-    const today = new Date().toISOString().slice(0, 10);
+    const today = localDateStr();
 
     const result = units.map(u => {
       const lastReading = db().prepare(`SELECT temperature, humidity, current_a, ac_status, recorded_at
@@ -72,9 +86,9 @@ module.exports = function (io) {
 
       function fmtTime(sqliteDt) {
         if (!sqliteDt) return null;
-        const date = new Date(sqliteDt.replace(' ', 'T') + 'Z');
-        let h = date.getUTCHours();
-        const m = String(date.getUTCMinutes()).padStart(2, '0');
+        const date = new Date(sqliteDt.replace(' ', 'T'));
+        let h = date.getHours();
+        const m = String(date.getMinutes()).padStart(2, '0');
         const ampm = h >= 12 ? 'PM' : 'AM';
         h = h % 12 || 12;
         return `${h}:${m} ${ampm}`;
@@ -125,8 +139,8 @@ module.exports = function (io) {
 
   router.get('/units/:id/readings', (req, res) => {
     const { from, to, limit = 500 } = req.query;
-    const fromDate = from || new Date(Date.now() - 24 * 3600000).toISOString();
-    const toDate = to || new Date().toISOString();
+    const fromDate = from || localDateTimeStr(new Date(Date.now() - 24 * 3600000));
+    const toDate = to || localDateTimeStr();
 
     const rows = db().prepare(`
       SELECT * FROM readings
@@ -139,8 +153,8 @@ module.exports = function (io) {
 
   router.get('/units/:id/hours', (req, res) => {
     const { from, to } = req.query;
-    const fromDate = from || new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
-    const toDate = to || new Date().toISOString().slice(0, 10);
+    const fromDate = from || localDateDaysAgo(7);
+    const toDate = to || localDateStr();
 
     const events = db().prepare(`
       SELECT e1.event_time AS on_time, MIN(e2.event_time) AS off_time
@@ -158,7 +172,8 @@ module.exports = function (io) {
     events.forEach(e => {
       const off = e.off_time ? new Date(e.off_time) : now;
       const duration = (off - new Date(e.on_time)) / 3600000;
-      const day = new Date(e.on_time).toISOString().slice(0, 10);
+      const de = new Date(e.on_time.replace(' ', 'T'));
+      const day = de.getFullYear() + '-' + String(de.getMonth() + 1).padStart(2, '0') + '-' + String(de.getDate()).padStart(2, '0');
       daily[day] = (daily[day] || 0) + duration;
     });
 
@@ -178,8 +193,17 @@ module.exports = function (io) {
 
   router.get('/report', (req, res) => {
     const { from, to, unit_ids, format = 'json' } = req.query;
-    const fromDate = from || new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
-    const toDate = to || new Date().toISOString().slice(0, 10);
+    const fromDate = from || localDateDaysAgo(30);
+    const toDate = to || localDateStr();
+
+    function fmtClock(sqliteDt) {
+      const date = new Date(sqliteDt.replace(' ', 'T'));
+      let h = date.getHours();
+      const m = String(date.getMinutes()).padStart(2, '0');
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      h = h % 12 || 12;
+      return `${h}:${m} ${ampm}`;
+    }
 
     let units;
     if (unit_ids) {
@@ -210,7 +234,8 @@ module.exports = function (io) {
         const dur = (off - new Date(e.on_time)) / 3600000;
         totalHours += dur;
         onCycles++;
-        const day = new Date(e.on_time).toISOString().slice(0, 10);
+        const de = new Date(e.on_time.replace(' ', 'T'));
+      const day = de.getFullYear() + '-' + String(de.getMonth() + 1).padStart(2, '0') + '-' + String(de.getDate()).padStart(2, '0');
         daily[day] = (daily[day] || 0) + dur;
       });
 
@@ -237,10 +262,10 @@ module.exports = function (io) {
         } : null,
         daily_breakdown: (function () {
           const filled = [];
-          const start = new Date(fromDate);
-          const end = new Date(toDate);
+          const start = new Date(fromDate + 'T00:00:00');
+          const end = new Date(toDate + 'T00:00:00');
           for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-            const key = d.toISOString().slice(0, 10);
+            const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
             filled.push({ date: key, hours: Math.round((daily[key] || 0) * 100) / 100 });
           }
           return filled;
@@ -274,6 +299,42 @@ module.exports = function (io) {
       csv += `"Avg Hours Per Room","${report.length ? Math.round(grandTotal / report.length * 100) / 100 : 0}"\n`;
       csv += '\n';
 
+      // ── Air-Conditioning Unit Monitoring Checklist ──
+      const allDays = [...new Set(report.flatMap(u => (u.daily_breakdown || []).map(d => d.date)))].sort();
+      csv += `"AIR-CONDITIONING UNIT MONITORING CHECKLIST"\n`;
+      csv += `"No.","Rooms"${allDays.map(day => sep + '"' + day + ' ON"' + sep + '"' + day + ' OFF"').join('')}\n`;
+      report.forEach((u, idx) => {
+        const eventsByDay = {};
+        const chk = db().prepare(`
+          SELECT e1.event_time AS on_time, MIN(e2.event_time) AS off_time
+          FROM ac_events e1
+          LEFT JOIN ac_events e2 ON e2.unit_id = e1.unit_id AND e2.id > e1.id AND e2.event_type = 'OFF'
+          WHERE e1.unit_id = ? AND e1.event_type = 'ON'
+            AND date(e1.event_time) >= ? AND date(e1.event_time) <= ?
+          GROUP BY e1.id ORDER BY e1.event_time
+        `).all(u.unit_id, fromDate, toDate);
+        chk.forEach(e => {
+          const d = new Date(e.on_time.replace(' ', 'T'));
+          const day = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+          if (!eventsByDay[day]) eventsByDay[day] = [];
+          eventsByDay[day].push({
+            on: fmtClock(e.on_time),
+            off: e.off_time ? fmtClock(e.off_time) : 'Running'
+          });
+        });
+        const cells = allDays.map(day => {
+          const evts = eventsByDay[day];
+          if (evts && evts.length) {
+            const onStr = evts.map(e => e.on).join('\n');
+            const offStr = evts.map(e => e.off).join('\n');
+            return sep + '"' + onStr + '"' + sep + '"' + offStr + '"';
+          }
+          return sep + '"—"' + sep + '"—"';
+        }).join('');
+        csv += `${idx + 1},"${u.room_name}"${cells}\n`;
+      });
+      csv += '\n';
+
       // ── Room Summary ──
       csv += `"ROOM SUMMARY"\n`;
       csv += `"Room","Building","Total Hours","ON Cycles","Avg Temp (°C)","Low Temp Warnings","Lowest Temp (°C)"\n`;
@@ -285,7 +346,6 @@ module.exports = function (io) {
       csv += '\n';
 
       // ── Daily Breakdown ──
-      const allDays = [...new Set(report.flatMap(u => (u.daily_breakdown || []).map(d => d.date)))].sort();
       if (allDays.length) {
         csv += `"DAILY BREAKDOWN (hours)"\n`;
         csv += `"Date"${report.map(u => sep + '"' + u.room_name + '"').join('')}${sep}"Total"\n`;
@@ -324,16 +384,16 @@ module.exports = function (io) {
   /* ───── Monitoring Checklist ───── */
   router.get('/checklist', (req, res) => {
     const { from, to } = req.query;
-    const fromDate = from || new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
-    const toDate = to || new Date().toISOString().slice(0, 10);
+    const fromDate = from || localDateDaysAgo(7);
+    const toDate = to || localDateStr();
 
     const units = db().prepare('SELECT * FROM units WHERE is_active = 1').all();
 
     const allDates = [];
-    const d = new Date(fromDate);
-    const end = new Date(toDate);
+    const d = new Date(fromDate + 'T00:00:00');
+    const end = new Date(toDate + 'T00:00:00');
     while (d <= end) {
-      allDates.push(d.toISOString().slice(0, 10));
+      allDates.push(localDateStr(d));
       d.setDate(d.getDate() + 1);
     }
 
@@ -349,7 +409,8 @@ module.exports = function (io) {
 
       const days = {};
       events.forEach(e => {
-        const day = new Date(e.on_time).toISOString().slice(0, 10);
+        const de = new Date(e.on_time.replace(' ', 'T'));
+        const day = de.getFullYear() + '-' + String(de.getMonth() + 1).padStart(2, '0') + '-' + String(de.getDate()).padStart(2, '0');
         const onStr = formatTime(e.on_time);
         const offStr = e.off_time ? formatTime(e.off_time) : 'Running';
         if (!days[day]) days[day] = [];
@@ -373,9 +434,9 @@ module.exports = function (io) {
     });
 
     function formatTime(sqliteDt) {
-      const date = new Date(sqliteDt.replace(' ', 'T') + 'Z');
-      let h = date.getUTCHours();
-      const m = String(date.getUTCMinutes()).padStart(2, '0');
+      const date = new Date(sqliteDt.replace(' ', 'T'));
+      let h = date.getHours();
+      const m = String(date.getMinutes()).padStart(2, '0');
       const ampm = h >= 12 ? 'PM' : 'AM';
       h = h % 12 || 12;
       return `${h}:${m} ${ampm}`;

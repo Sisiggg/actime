@@ -1,6 +1,6 @@
 const http = require('http');
 const TARGET = 24;
-const INTERVAL_MS = 8000;
+const INTERVAL_MS = 60000;
 
 const units = [
   { id: 1, name: 'LAB A' },
@@ -17,8 +17,8 @@ units.forEach(u => {
   };
 });
 
-function randomOnMS()  { return (10 * 60 + Math.random() * 20 * 60) * 1000; }
-function randomOffMS() { return (5 * 60  + Math.random() * 10 * 60) * 1000; }
+function randomOnMS()  { return (2 * 60 + Math.random() * 3 * 60) * 1000; }
+function randomOffMS() { return (2 * 60 + Math.random() * 3 * 60) * 1000; }
 
 function simulate() {
   units.forEach(u => {
@@ -51,7 +51,7 @@ function simulate() {
       ac_status: s.ac
     });
 
-    const port = parseInt(process.env.PORT, 10) || 3000;
+    const port = parseInt(process.env.PORT, 10) || 8080;
     const opts = {
       hostname: 'localhost',
       port,

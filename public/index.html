@@ -14,23 +14,57 @@
         <a href="/" class="active">Dashboard</a>
         <a href="/reports.html">Reports</a>
       </nav>
-      <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="Toggle dark mode">🌙</button>
+      <button type="button" class="theme-btn" id="themeBtn" onclick="toggleTheme()" aria-label="Toggle dark mode"></button>
     </div>
   </header>
 
   <div class="container">
     <div class="summary" id="summary">
-      <div class="summary-card"><div class="label">Total Rooms</div><div class="value blue" id="totalRooms">—</div></div>
-      <div class="summary-card"><div class="label">Currently ON</div><div class="value green" id="totalOn">—</div></div>
-      <div class="summary-card"><div class="label">Hours Today</div><div class="value orange" id="totalHours">—</div></div>
-      <div class="summary-card"><div class="label">Avg Temperature</div><div class="value blue" id="avgTemp">—</div></div>
+      <div class="summary-card accent-blue">
+        <div class="summary-top">
+          <span class="label">Total Rooms</span>
+          <span class="summary-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+          </span>
+        </div>
+        <div class="value" id="totalRooms">—</div>
+      </div>
+      <div class="summary-card accent-green">
+        <div class="summary-top">
+          <span class="label">Currently ON</span>
+          <span class="summary-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v10"/><path d="M18.4 6.6a9 9 0 1 1-12.8 0"/></svg>
+          </span>
+        </div>
+        <div class="value" id="totalOn">—</div>
+      </div>
+      <div class="summary-card accent-orange">
+        <div class="summary-top">
+          <span class="label">Hours Today</span>
+          <span class="summary-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          </span>
+        </div>
+        <div class="value" id="totalHours">—</div>
+      </div>
+      <div class="summary-card accent-blue">
+        <div class="summary-top">
+          <span class="label">Avg Temperature</span>
+          <span class="summary-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg>
+          </span>
+        </div>
+        <div class="value" id="avgTemp">—</div>
+      </div>
     </div>
 
     <div class="section-title">
       <span>Monitored Rooms</span>
-      <span id="lastUpdate" style="font-size:12px;font-weight:400;color:#888;margin-left:auto;"></span>
+      <span id="lastUpdate" class="section-meta"></span>
     </div>
-    <div id="roomGrid" class="room-grid"></div>
+    <div id="roomGrid" class="room-grid">
+      <div class="loading"><div class="spinner"></div>Loading rooms...</div>
+    </div>
   </div>
 
   <script src="/js/theme.js"></script>
