@@ -86,24 +86,25 @@ The system currently monitors **two (2) rooms** — **LAB A** and **LAB B** — 
 ```
        ┌────────────────────────────────────────────┐
        │                                            │
-       │   ┌─────────────┐     ┌─────────────────┐  │
-       │   │    DHT22    │     │    SCT-013      │  │
-       │   │ Temperature │     │   Current       │  │
-       │   │    Sensor   │     │    Sensor       │  │
-       │   └──────┬──────┘     └───────┬─────────┘  │
-       │          │  Data              │  Data       │
-       │          ▼                    ▼             │
-       │   ┌────────────────────────────────────┐    │
-       │   │              ESP32                │    │
-       │   │          Microcontroller          │    │
-       │   │          (Wi-Fi Enabled)          │    │
-       │   └────────────────────────────────────┘    │
-       │              ▲  Power                      │
-       │              │  5V DC                      │
-       │   ┌─────────────────────┐                  │
-       │   │ Centralized Power   │                  │
-       │   │       Supply        │                  │
-       │   └─────────────────────┘                  │
+       │  ┌────────────┐  operate   ┌────────────┐  │
+       │  │ Room Users │───────────▶│  AC Unit   │  │
+       │  └────────────┘            └──────┬─────┘  │
+       │                                   │ amps   │
+       │  ┌─────────────┐           ┌────────────┐  │
+       │  │    DHT22    │           │  SCT-013   │  │
+       │  │ Temp / Hum  │           │  Current   │  │
+       │  └──────┬──────┘           └──────┬─────┘  │
+       │         │ data                    │ data   │
+       │         └────────────┬────────────┘        │
+       │                      ▼                     │
+       │            ┌────────────────────┐          │
+       │            │       ESP32        │          │
+       │            └─────────┬──────────┘          │
+       │                      ▲ power               │
+       │            ┌─────────┴──────────┐          │
+       │            │ Centralized Power  │          │
+       │            └────────────────────┘          │
+       │                                            │
        └────────────────────────────────────────────┘
                               │  Wi-Fi (HTTP/JSON)
                               ▼
@@ -119,19 +120,15 @@ The system currently monitors **two (2) rooms** — **LAB A** and **LAB B** — 
               │          │               │
               │   Web Dashboard          │
               └────────────┬─────────────┘
-                           │  Browser Access
+                           │  Admin access
                            ▼
               ┌──────────────────────────┐
+              │      Administrator       │
               │      Web Dashboard       │
-              └────────────┬─────────────┘
-                           │
-              ┌────────────┴────────────────┐
-              │                             │
-              ▼                             ▼
-    ┌──────────────────┐          ┌──────────────────┐
-    │   Administrator  │          │       User       │
-    └──────────────────┘          └──────────────────┘
+              └──────────────────────────┘
 ```
+
+Room users operate the AC units. Only the administrator can access the dashboard.
 
 ### Figure 2. Three-Layer Architecture Model
 
