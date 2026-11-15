@@ -122,7 +122,7 @@ The system currently monitors **two (2) rooms** — **LAB A** and **LAB B** — 
                            │  Browser Access
                            ▼
               ┌──────────────────────────┐
-              │      Administrator       │
+              │   Administrator / User   │
               │      Web Dashboard       │
               └──────────────────────────┘
 ```
