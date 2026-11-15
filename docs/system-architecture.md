@@ -102,8 +102,8 @@ The system currently monitors **two (2) rooms** — **LAB A** and **LAB B** — 
        │              ▲  Power                      │
        │              │  5V DC                      │
        │   ┌─────────────────────┐                  │
-       │   │  Power Supply 5V    │                  │
-       │   │    USB Adapter      │                  │
+       │   │ Centralized Power   │                  │
+       │   │       Supply        │                  │
        │   └─────────────────────┘                  │
        └────────────────────────────────────────────┘
                               │  Wi-Fi (HTTP/JSON)
@@ -122,6 +122,12 @@ The system currently monitors **two (2) rooms** — **LAB A** and **LAB B** — 
               │   Database (SQLite)      │
               │          │               │
               │   Web Dashboard          │
+              └────────────┬─────────────┘
+                           │  Browser Access
+                           ▼
+              ┌──────────────────────────┐
+              │      Administrator       │
+              │      Web Dashboard       │
               └──────────────────────────┘
 ```
 
@@ -146,13 +152,13 @@ The system currently monitors **two (2) rooms** — **LAB A** and **LAB B** — 
 | 1 | Microcontroller | ESP32 DevKit V1 (ESP-WROOM-32) | 1 | Data acquisition, processing, and Wi-Fi transmission |
 | 2 | Temperature Sensor | DHT22 (AM2302) | 1 | Measures room temperature and humidity |
 | 3 | Current Sensor | SCT-013-030 (Split-Core, 30A) | 1 | Non-invasive detection of AC operation |
-| 4 | Power Supply | 5V / 1A USB Adapter | 1 | Powers the ESP32 and sensors |
+| 4 | Power Supply | Centralized Power Supply (5V DC) | 1 | Powers the ESP32 and sensors |
 | 5 | Voltage Divider | 100kΩ + 10kΩ resistors (1%) | 2 pcs | Scales SCT-013 output to 0–3.3V ADC range |
 | 6 | Filter Capacitor | 10µF Electrolytic | 1 | Smooths analog current signal |
 | 7 | Prototyping Board | Half-size Breadboard | 1 | Circuit assembly during development |
 | 8 | Jumper Wires | Male-to-Male / Male-to-Female | 15 pcs | Electrical connections |
 | 9 | Enclosure | ABS Project Box (80×60×30 mm) | 1 | Protective housing for electronics |
-| 10 | USB Cable | Micro-USB / USB-C | 1 | Power connection to ESP32 |
+| 10 | Power Cable | 2-core DC cable | 1 | 5V DC connection to ESP32 |
 
 ---
 
@@ -170,7 +176,7 @@ The system currently monitors **two (2) rooms** — **LAB A** and **LAB B** — 
 | Bluetooth | BLE 4.2 |
 | ADC Resolution | 12-bit (2 × SAR ADC) |
 | Digital I/O Pins | 34 programmable GPIO |
-| Operating Voltage | 3.3V (5V tolerant via USB) |
+| Operating Voltage | 3.3V (5V tolerant via VIN) |
 | Deep Sleep Mode | ~10 µA (power saving) |
 | Operating Temperature | -40°C to +85°C |
 
@@ -215,7 +221,7 @@ The system currently monitors **two (2) rooms** — **LAB A** and **LAB B** — 
 | GPIO 34 | SCT-013 output (via voltage divider) | Analog (ADC1_CH6) |
 | 3.3V | DHT22 VCC | Power Supply |
 | GND | DHT22 GND / SCT-013 GND | Ground |
-| VIN (5V) | USB Power Adapter | Power Input |
+| VIN (5V) | Centralized Power Supply | Power Input |
 
 ### 6.2 Wiring Schematic
 
@@ -238,7 +244,7 @@ The system currently monitors **two (2) rooms** — **LAB A** and **LAB B** — 
         │                  │     │                │
         │                 GND    │                │
         │                        │                │
-        │  VIN ────── USB 5V     │                │
+        │  VIN ────── 5V DC      │                │
         │                        └── SCT-013 CLAMP │
         │                        ┌──────┴──────┐   │
         │                        │   AC POWER   │   │
@@ -375,7 +381,7 @@ The monitoring hardware adds negligible load to the electrical circuit — appro
 | ESP32 DevKit V1 | Shopee / Lazada / Alexan | 250 – 400 |
 | DHT22 Sensor | Shopee / Lazada | 150 – 250 |
 | SCT-013-030 | Shopee / Lazada | 350 – 500 |
-| 5V/1A USB Adapter | Local electronics store | 100 – 150 |
+| Centralized power supply | Local electronics store | 100 – 150 |
 | Resistors + Capacitor | Local electronics store | 50 |
 | Breadboard + Wires | Shopee / Lazada | 150 – 250 |
 | ABS Project Box | Shopee / Lazada | 100 – 200 |
