@@ -84,7 +84,6 @@ The system currently monitors **two (2) rooms** — **LAB A** and **LAB B** — 
 ### Figure 1. End-to-End System Architecture
 
 ```
-              PERCEPTION LAYER  (Monitoring Room)
        ┌────────────────────────────────────────────┐
        │                                            │
        │   ┌─────────────┐     ┌─────────────────┐  │
@@ -109,14 +108,11 @@ The system currently monitors **two (2) rooms** — **LAB A** and **LAB B** — 
                               │  Wi-Fi (HTTP/JSON)
                               ▼
               ┌──────────────────────────┐
-              │      NETWORK LAYER       │
               │    School Wi-Fi Router   │
               └─────────────┬────────────┘
                             │
                             ▼
               ┌──────────────────────────┐
-              │    APPLICATION LAYER     │
-              │                          │
               │   Web Server (Node.js)   │
               │          │               │
               │   Database (SQLite)      │
