@@ -122,9 +122,15 @@ The system currently monitors **two (2) rooms** — **LAB A** and **LAB B** — 
                            │  Browser Access
                            ▼
               ┌──────────────────────────┐
-              │   Administrator / User   │
               │      Web Dashboard       │
-              └──────────────────────────┘
+              └────────────┬─────────────┘
+                           │
+              ┌────────────┴────────────────┐
+              │                             │
+              ▼                             ▼
+    ┌──────────────────┐          ┌──────────────────┐
+    │   Administrator  │          │       User       │
+    └──────────────────┘          └──────────────────┘
 ```
 
 ### Figure 2. Three-Layer Architecture Model
